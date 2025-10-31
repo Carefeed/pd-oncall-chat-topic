@@ -1,10 +1,10 @@
-# Terraform Deployment for PagerDuty On-Call Slack Topic Updater
+# Terraform/OpenTofu Deployment for PagerDuty On-Call Slack Topic Updater
 
-This directory contains Terraform configuration to deploy the PagerDuty on-call Slack integration Lambda function.
+This directory contains Terraform/OpenTofu configuration to deploy the PagerDuty on-call Slack integration Lambda function.
 
 ## Prerequisites
 
-1. **Terraform** >= 1.0 installed
+1. **Terraform** >= 1.0 or **OpenTofu** >= 1.6 installed
 2. **AWS CLI** configured with appropriate profile
 3. **Slack Bot** created with these scopes:
    - `channels:read`
@@ -33,22 +33,34 @@ Edit `terraform.tfvars` with your values:
 - PagerDuty API key
 - Slack bot token
 
-### 2. Initialize Terraform
+### 2. Initialize Terraform/OpenTofu
 
 ```bash
+# Using Terraform
 terraform init
+
+# Or using OpenTofu
+tofu init
 ```
 
 ### 3. Review Plan
 
 ```bash
+# Using Terraform
 terraform plan
+
+# Or using OpenTofu
+tofu plan
 ```
 
 ### 4. Deploy
 
 ```bash
+# Using Terraform
 terraform apply
+
+# Or using OpenTofu
+tofu apply
 ```
 
 Type `yes` when prompted.
@@ -182,7 +194,11 @@ aws ssm put-parameter \
 To destroy all resources:
 
 ```bash
+# Using Terraform
 terraform destroy
+
+# Or using OpenTofu
+tofu destroy
 ```
 
 Type `yes` when prompted.

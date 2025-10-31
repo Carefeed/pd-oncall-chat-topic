@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.0"  # Works with both Terraform >= 1.0 and OpenTofu >= 1.6
 
   required_providers {
     aws = {
