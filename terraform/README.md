@@ -65,25 +65,25 @@ Use the AWS CLI to add an item to the DynamoDB table:
 aws dynamodb put-item \
   --table-name pagerduty-oncall-chat-topic-config \
   --item '{
-    "schedule": {"S": "PIQSTG5"},
-    "slack": {"S": "C09KSHVDX8U"},
-    "sched_name": {"S": "Core Engineering"}
+    "schedule": {"S": "P123456"},
+    "slack": {"S": "C123456789"},
+    "sched_name": {"S": "Engineering On-Call"}
   }' \
-  --profile staging-developers \
-  --region us-east-2
+  --profile YOUR_AWS_PROFILE \
+  --region YOUR_AWS_REGION
 ```
 
 **Field descriptions:**
-- `schedule`: PagerDuty schedule ID (e.g., `PIQSTG5`)
-- `slack`: Slack channel ID (e.g., `C09KSHVDX8U`)
+- `schedule`: PagerDuty schedule ID (format: `P` followed by 6-7 alphanumeric characters)
+- `slack`: Slack channel ID (format: `C` followed by 9-10 alphanumeric characters)
 - `sched_name`: Optional display name for the schedule
 
 **Multiple schedules:**
 If you have split on-call rotations, use comma-separated values:
 ```json
 {
-  "schedule": {"S": "PIQSTG5,PABCDEF"},
-  "slack": {"S": "C09KSHVDX8U"},
+  "schedule": {"S": "P123456,P789ABC"},
+  "slack": {"S": "C123456789"},
   "sched_name": {"S": "Engineering Primary,Engineering Secondary"}
 }
 ```
@@ -92,9 +92,9 @@ If you have split on-call rotations, use comma-separated values:
 To update multiple Slack channels with the same schedule:
 ```json
 {
-  "schedule": {"S": "PIQSTG5"},
-  "slack": {"S": "C09KSHVDX8U C12345678"},
-  "sched_name": {"S": "Core Engineering"}
+  "schedule": {"S": "P123456"},
+  "slack": {"S": "C123456789 C987654321"},
+  "sched_name": {"S": "Engineering On-Call"}
 }
 ```
 
@@ -104,7 +104,7 @@ To update multiple Slack channels with the same schedule:
 
 ```bash
 terraform output lambda_function_name
-aws lambda get-function --function-name $(terraform output -raw lambda_function_name) --profile staging-developers --region us-east-2
+aws lambda get-function --function-name $(terraform output -raw lambda_function_name) --profile YOUR_AWS_PROFILE --region YOUR_AWS_REGION
 ```
 
 ### 2. Invoke Lambda Manually (Test)
@@ -112,8 +112,8 @@ aws lambda get-function --function-name $(terraform output -raw lambda_function_
 ```bash
 aws lambda invoke \
   --function-name $(terraform output -raw lambda_function_name) \
-  --profile staging-developers \
-  --region us-east-2 \
+  --profile YOUR_AWS_PROFILE \
+  --region YOUR_AWS_REGION \
   /tmp/lambda-output.json
 
 cat /tmp/lambda-output.json
@@ -123,7 +123,7 @@ cat /tmp/lambda-output.json
 
 The Lambda runs every 5 minutes. Wait a few minutes and check your Slack channel topic. It should show:
 ```
-Jim Barrett is on-call for Core Engineering | [rest of topic]
+[Name] is on-call for [Schedule Name] | [rest of topic]
 ```
 
 ### 4. View Lambda Logs
@@ -131,8 +131,8 @@ Jim Barrett is on-call for Core Engineering | [rest of topic]
 ```bash
 aws logs tail /aws/lambda/pagerduty-oncall-chat-topic \
   --follow \
-  --profile staging-developers \
-  --region us-east-2
+  --profile YOUR_AWS_PROFILE \
+  --region YOUR_AWS_REGION
 ```
 
 ## Updating API Keys
@@ -146,8 +146,8 @@ aws ssm put-parameter \
   --value "NEW_API_KEY" \
   --type SecureString \
   --overwrite \
-  --profile staging-developers \
-  --region us-east-2
+  --profile YOUR_AWS_PROFILE \
+  --region YOUR_AWS_REGION
 
 # Update Slack key
 aws ssm put-parameter \
@@ -155,8 +155,8 @@ aws ssm put-parameter \
   --value "NEW_SLACK_TOKEN" \
   --type SecureString \
   --overwrite \
-  --profile staging-developers \
-  --region us-east-2
+  --profile YOUR_AWS_PROFILE \
+  --region YOUR_AWS_REGION
 ```
 
 ## Resources Created
@@ -196,7 +196,7 @@ Check that the IAM role has the correct permissions:
 aws iam get-role-policy \
   --role-name pagerduty-oncall-chat-topic-role \
   --policy-name pagerduty-oncall-chat-topic-policy \
-  --profile staging-developers
+  --profile YOUR_AWS_PROFILE
 ```
 
 ### Slack channel topic not updating
@@ -231,4 +231,4 @@ DynamoDB    SSM Parameters
 
 ## Contributing
 
-This Terraform module is maintained as part of the Carefeed fork of the PagerDuty pd-oncall-chat-topic repository.
+Contributions are welcome! Please open an issue or pull request.
