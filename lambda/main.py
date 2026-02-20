@@ -73,6 +73,35 @@ def get_user(schedule_id):
     return username
 
 
+def get_next_oncall(schedule_id):
+    """Get the next person on-call after the current shift."""
+    global PD_API_KEY
+    headers = {
+        'Accept': 'application/vnd.pagerduty+json;version=2',
+        'Authorization': 'Token token={token}'.format(token=PD_API_KEY)
+    }
+    url = 'https://api.pagerduty.com/schedules/{0}'.format(schedule_id)
+    now = datetime.now(timezone.utc)
+    payload = {
+        'since': now.isoformat(),
+        'until': (now + timedelta(days=14)).isoformat(),
+    }
+    response = http.request('GET', url, headers=headers, fields=payload)
+    body = response.data.decode('utf-8')
+    r = json.loads(body)
+    try:
+        entries = r['schedule']['final_schedule']['rendered_schedule_entries']
+        # First entry is current on-call, second is next
+        if len(entries) >= 2:
+            next_entry = entries[1]
+            next_user = next_entry['user']['summary']
+            next_start = datetime.fromisoformat(next_entry['start'])
+            return {'user': next_user, 'start': next_start}
+    except (KeyError, IndexError):
+        logger.debug("Could not determine next on-call for schedule {}".format(schedule_id))
+    return None
+
+
 def get_pd_schedule_name(schedule_id):
     global PD_API_KEY
     headers = {
@@ -205,7 +234,7 @@ def do_work(obj):
     # schedule will ALWAYS be there, it is a ddb primarykey
     schedules = obj['schedule']['S']
     schedule_list = schedules.split(',')
-    oncall_dict = {}
+    oncall_entries = []
     for schedule in schedule_list:  #schedule can now be a whitespace separated 'list' in a string
         schedule = figure_out_schedule(schedule)
 
@@ -219,19 +248,34 @@ def do_work(obj):
             sched_name = sched_names[schedule_list.index(schedule)] #We want the schedule name in the same position as the schedule we're using
         except:
             sched_name = get_pd_schedule_name(schedule)
-        oncall_dict[username] = sched_name
+        next_oncall = get_next_oncall(schedule)
+        oncall_entries.append({
+            'user': username,
+            'sched_name': sched_name,
+            'next': next_oncall,
+        })
 
-    if oncall_dict:  # then it is valid and update the chat topic
-        topic = ""
-        i = 0
-        for user in oncall_dict:
-            if i != 0:
-                topic += ", "
-            topic += "{} is on-call for {}".format(
-                user,
-                oncall_dict[user]
-            )
-            i += 1
+    if oncall_entries:  # then it is valid and update the chat topic
+        # Build "now" line
+        now_parts = []
+        for entry in oncall_entries:
+            now_parts.append("{} is on-call for {}".format(entry['user'], entry['sched_name']))
+        topic = ", ".join(now_parts)
+
+        # Build "next" line
+        next_parts = []
+        for entry in oncall_entries:
+            if entry['next']:
+                start = entry['next']['start']
+                start_str = "{} {}".format(start.strftime('%a %b'), start.day)
+                if len(oncall_entries) > 1:
+                    next_parts.append("{} ({}, {})".format(
+                        entry['next']['user'], entry['sched_name'], start_str))
+                else:
+                    next_parts.append("{} ({})".format(
+                        entry['next']['user'], start_str))
+        if next_parts:
+            topic += "\nNext: " + ", ".join(next_parts)
 
         if 'slack' in obj.keys():
             slack = obj['slack']['S']
